@@ -22,6 +22,7 @@ library(cplm)
 library(BiocParallel)
 library(parallel)
 library(stats)
+library(Tweedieverse)
 ```
 
 
@@ -30,6 +31,7 @@ library(stats)
 
 
 data(airway)
+
 
 ## trt <- ifelse(airway$dex == "untrt", 0 , 1)
 
@@ -110,6 +112,17 @@ runtime <- system.time({
 result <- CPLM(airway, design, n_threads = 5)
 })
 
+
+input_features<- as.data.frame(t(assay(airway)))
+input_metadata<- data.frame(colData(airway)["dex"])
+
+PBMC <- Tweedieverse(
+  input_features,
+  input_metadata, 
+  output = 'PBMC', # Assuming demo_output exists
+  fixed_effects = c('dex'),
+  base_model = 'CPLM',
+  adjust_offset = TRUE)
 ```
 
 
