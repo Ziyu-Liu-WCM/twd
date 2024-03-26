@@ -21,6 +21,7 @@ library(GOfuncR)
 library(cplm)
 library(BiocParallel)
 library(parallel)
+library(stats)
 ```
 
 
@@ -29,7 +30,6 @@ library(parallel)
 
 
 data(airway)
-
 
 ## trt <- ifelse(airway$dex == "untrt", 0 , 1)
 
@@ -42,7 +42,7 @@ df <- assay(filtered)
 
 
 
-X <- airway$dex
+design <- airway$dex
 
 tp_formula <- paste0("tmp_y", "~",
                              paste0( X, collapse = "+")) %>% as.formula()
@@ -57,6 +57,9 @@ registered()
 ```{r}
 CPLM <- function(input, X, assay_name = "counts", n_threads = 1, BPPARAM = NULL, 
                   verbose = FALSE){
+
+
+stopifnot(is(input, "SummarizedExperiment") | is(input, "RangedSummarizedExperiment"))
   
 
 
@@ -68,17 +71,15 @@ if (is.null(BPPARAM)) {
        }
 }
 
-input <- airway
-WX
 df <- assay(airway[filterByExpr(input), ])
 
 ## define per feature function
-FUN <- function(i, WX){
+FUN <- function(i, design){
 tmp_y <- as.numeric(df[i, ])
 
-fit.df <- data.frame(WX, tmp_y)
+fit.df <- data.frame(design, tmp_y)
 
-fit <- cpglm(formula = tmp_y ~ WX, 
+fit <- cpglm(formula = tmp_y ~ design, 
                      link="log",
                      data = fit.df)
 cplm_out <- capture.output(cplm_summary <- cplm::summary(fit)$coefficients)
@@ -91,21 +92,9 @@ res_i <- c(
 return(res_i)
 }
 
-FUN(1, X)
-
-WX <- X
-## run for loop
-
-class(ix)
-
-
 ix <- seq_len(nrow(df))
 
-runtime <- system.time({
-  out_tp <- bplapply(ix, FUN , wX = wX,  BPPARAM = BPPARAM)
-  })
-
-out_tp <- bplapply(ix, FUN , WX = WX)
+out_tp <- bplapply(ix, FUN , design = design, BPPARAM = BPPARAM)
 
 
 mat_tp <- data.frame(do.call("rbind", out_tp))
@@ -114,10 +103,13 @@ rownames(mat_tp) <- rownames(df)
 mat_tp$padj <- p.adjust(mat_tp$pval, method = "BH")
 
 return(mat_tp)
-return(runtime)
 }
 
-CPLM(airway, trt)
+
+runtime <- system.time({ 
+result <- CPLM(airway, design, n_threads = 5)
+})
+
 ```
 
 
