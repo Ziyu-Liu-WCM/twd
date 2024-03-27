@@ -28,6 +28,10 @@ library(mgcv)
 library(DESeq2)
 library(edgeR)
 library(gplots)
+library(nnSVG)
+library(SeuratData)
+library(SpatialExperiment)
+library(glmGamPoi)
 theme_set(theme_bw())
 ```
 
@@ -347,15 +351,31 @@ print(common_genes)
 
 
 ```{r}
-library(SPARK)
-library(nnSVG)
-library(SeuratData)
-library(patchwork)
-library(SpatialExperiment)
-
-
-InstallData("stxBrain")
 brain <- LoadData("stxBrain", type = "anterior1")
+
+
+```
+
+```{r}
+brain <- SCTransform(brain, assay = "Spatial", verbose = FALSE)
+brain <- NormalizeData(brain)
+
+spe <- as.data.frame(brain@assays$SCT$counts)
+
+filter <- filterByExpr(spe)
+table(filter)
+
+spe <- spe[filter,]
+
+length(brain@images$anterior1@coordinates$row)
+
+X <- list(brain@images$anterior1@coordinates$row)
+Y <- list(brain@images$anterior1@coordinates$col)
+coords <- data.frame(X, Y)
+colnames(coords) <- c("X", "Y")
+
+
+result <- nnSVG(spe, spatial_coords = coords)
 
 ```
 
