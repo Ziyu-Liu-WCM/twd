@@ -57,6 +57,9 @@ registered()
 ```
 
 ```{r}
+
+ipt <- airway[1:1000, ]
+
 CPLM <- function(input, X, assay_name = "counts", n_threads = 1, BPPARAM = NULL, 
                   verbose = FALSE){
 
@@ -73,7 +76,7 @@ if (is.null(BPPARAM)) {
        }
 }
 
-df <- assay(airway[filterByExpr(input), ])
+df <- assay(input[filterByExpr(input), ])
 
 ## define per feature function
 FUN <- function(i, design){
@@ -108,14 +111,21 @@ return(mat_tp)
 }
 
 
-runtime <- system.time({ 
-result <- CPLM(airway, design, n_threads = 5)
+runtime2 <- system.time({ 
+result <- CPLM(ipt, design, n_threads = 5)
 })
 
 
-input_features<- as.data.frame(t(assay(airway)))
-input_metadata<- data.frame(colData(airway)["dex"])
+##input_features<- as.data.frame(t(assay(airway)))
+##input_metadata<- data.frame(colData(airway)["dex"])
 
+```
+
+```{r}
+input_features<- as.data.frame(t(assay(ipt)))
+input_metadata<- data.frame(colData(ipt)["dex"])
+
+runtime1 <- system.time({
 PBMC <- Tweedieverse(
   input_features,
   input_metadata, 
@@ -123,6 +133,7 @@ PBMC <- Tweedieverse(
   fixed_effects = c('dex'),
   base_model = 'CPLM',
   adjust_offset = TRUE)
+})
 ```
 
 
