@@ -1,0 +1,166 @@
+---
+title: "HW4"
+output: html_document
+date: "2024-03-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+BiocManager::install("Maaslin2")
+BiocManager::install("MMUPHin")
+BiocManager::install("phyloseq")
+BiocManager::install("MultiAssayExperiment")
+BiocManager::install("ecodist")
+BiocManager::install("HMP2Data")
+BiocManager::install("microbiome")
+BiocManager::install("SpiecEasi")
+BiocManager::install("WGCNA")
+devtools::install_github('zdk123/SpiecEasi')
+
+
+library(ggplot2)
+library(Maaslin2)
+library(MMUPHin)
+library(kableExtra)
+library(tidyverse)
+library(reshape2)
+library(phyloseq)
+library(SummarizedExperiment)
+library(MultiAssayExperiment)
+library(vegan)
+library(ecodist)
+library(HMP2Data)
+library(curatedMetagenomicData)
+library(microbiome)
+library(network)
+library(SpiecEasi) 
+library(Matrix)
+library(igraph)
+library(WGCNA)
+library(gsEasy)
+theme_set(theme_bw())
+```
+
+```{r}
+data("IBD16S_tax")
+colnames(IBD16S_tax)
+
+data("IBD16S_samp")
+colnames(IBD16S_samp) %>%
+head()
+
+IBD <- IBD16S()
+IBD
+
+```
+
+```{r}
+p = plot_richness(IBD, x = "diagnosis", color = "diagnosis",
+measures = c("Observed", "InvSimpson", "Shannon", "Chao1")) +
+geom_jitter()
+p + geom_boxplot(data = p$data, aes(x = diagnosis, y = value,
+color = NULL), alpha = 0.1)
+
+
+alpha = estimate_richness(IBD, measures = c("Observed", "InvSimpson", "Shannon"))
+
+alpha_df = data.frame(sample_data(IBD)[, c("sample_id", "subject_id")],
+alpha)
+rownames(alpha_df) = NULL
+kable(head(alpha_df), digits = 3, caption = "Some Alpha Diversities of the IBD dataset") %>%
+kable_styling(bootstrap_options = c("striped", "hover"),
+full_width = F, position = "center")
+
+```
+
+
+```{r}
+par(mfrow = c(1, 2))
+jac <- as.matrix(distance(t(otu_table(IBD)), method = "jaccard"))
+mod1 <- vegan::betadisper(as.dist(jac), as.factor(IBD16S_samp$diagnosis))
+bc = as.matrix(ecodist::bcdist(t(otu_table(IBD))))
+
+
+
+kable(fit$aov.tab, digits = 3, caption = "PERMANOVA result using Bray-Curtis distance") %>%
+kable_styling(bootstrap_options = c("striped", "hover"),
+full_width = F)
+
+
+
+se_relative <- sampleMetadata |>
+filter(study_name == "HMP_2019_ibdmdb") |>
+returnSamples("relative_abundance", rownames = "short")
+```
+
+```{r}
+IBD0 = subset_samples(IBD, week_num == 0 & diagnosis %in% c("nonIBD",
+"CD"))
+jac0 <- as.matrix(distance(t(otu_table(IBD0)), method = "jaccard"))
+bc0 = as.matrix(ecodist::bcdist(t(otu_table(IBD0))))
+CD = as.numeric(sample_data(IBD0)$diagnosis == "CD")
+gender = as.numeric(factor(sample_data(IBD0)$subject_gender))
+fit = vegan::adonis(bc0 ~ gender + CD, permutations = 500)
+
+
+kable(fit$aov.tab, digits = 3, caption = "PERMANOVA result using Bray-Curtis distance") %>%
+kable_styling(bootstrap_options = c("striped", "hover"),
+full_width = F)
+
+
+
+se_relative <- sampleMetadata |>
+filter(study_name == "HMP_2019_ibdmdb") |>
+returnSamples("relative_abundance", rownames = "short")
+```
+
+
+```{r}
+
+```
+
+```{r}
+sample_metadata <- colData(se_relative) %>%
+as.data.frame() %>%
+filter(visit_number == 1) %>%
+.[, c("age", "disease", "antibiotics_current_use")] ### check
+# Set reference
+sample_metadata$disease <- as.factor(sample_metadata$disease)
+sample_metadata$disease <- relevel(sample_metadata$disease, "healthy")
+########################### Create Species Features #
+feature_species_t <- as.data.frame(assay(se_relative))
+rownames(feature_species_t) <- sub(".*s__", "", rownames(feature_species_t))
+############################## Subset to baseline samples #
+feature_species <- as.data.frame(t(feature_species_t))
+feature_species <- feature_species[rownames(sample_metadata),
+]
+
+feature_species <- feature_species/100
+rm(feature_species_t)
+rm(se_relative)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
