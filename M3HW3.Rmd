@@ -32,6 +32,7 @@ library(nnSVG)
 library(SeuratData)
 library(SpatialExperiment)
 library(glmGamPoi)
+library(STexampleData)
 theme_set(theme_bw())
 ```
 
@@ -352,22 +353,28 @@ print(common_genes)
 
 ```{r}
 brain <- LoadData("stxBrain", type = "anterior1")
-
-
 ```
 
 ```{r}
-brain <- SCTransform(brain, assay = "Spatial", verbose = FALSE)
+ix_nonzero_genes <- rowSums(brain@assays$Spatial$counts >0) > 0
+table(ix_nonzero_genes)
+
+ix_nonzero_spots <- colSums(brain@assays$Spatial$counts >0) > 0
+table(ix_nonzero_spots)
+dim(brain)
+
+brain <- subset(brain, subset = nFeature_Spatial > 200, features = names(ix_nonzero_genes[ix_nonzero_genes]))
+
+dim(brain)
+
+
 brain <- NormalizeData(brain)
 
-spe <- as.data.frame(brain@assays$SCT$counts)
+brain <-brain[1:65]
 
-filter <- filterByExpr(spe)
-table(filter)
+spe <- as.data.frame(brain@assays$Spatial$data)
 
-spe <- spe[filter,]
 
-length(brain@images$anterior1@coordinates$row)
 
 X <- list(brain@images$anterior1@coordinates$row)
 Y <- list(brain@images$anterior1@coordinates$col)
@@ -376,6 +383,25 @@ colnames(coords) <- c("X", "Y")
 
 
 result <- nnSVG(spe, spatial_coords = coords)
+
+```
+
+```{r}
+spe <- Visium_humanDLPFC()
+
+spe <- spe[, colData(spe)$in_tissue == 1]
+dim(spe)
+
+spe <- filter_genes(spe)
+
+spe <- computeLibraryFactors(spe)
+spe <- logNormCounts(spe)
+
+spatialCoords()
+
+
+
+nnSVG(spe, n_threads = 20)
 
 ```
 

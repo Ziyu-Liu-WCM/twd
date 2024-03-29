@@ -1,0 +1,114 @@
+---
+title: "Consult p3"
+author: "Ziyu Liu"
+date: "2024-03-28"
+output: html_document
+---
+
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(gtsummary)
+library(corrplot)
+library(caret)
+library(MASS)
+library(kableExtra)
+library(dotwhisker)
+library(AppliedPredictiveModeling)
+library(pROC)
+library(car)
+```
+
+```{r, echo=FALSE}
+lbw = read_excel("lbw.xls") %>% janitor::clean_names()
+head(lbw)
+```
+
+## Exploratory Analysis
+```{r, echo=FALSE}
+tab1 <- lbw %>%
+  dplyr::select(-subject_id) %>%
+  mutate(birthweight_in_grams = as.factor(ifelse(birthweight_in_grams < 2500, "<2500", ">=2500"))) %>%
+  rename(Age = maternal_age_in_years,
+         Motherweight = mothers_weight_at_last_menstrual_period_in_pounds,
+         Smoking = smoking_status,
+         Hypertension = hypertension_status,
+         Birthweight = birthweight_in_grams) %>%
+  drop_na()
+
+tab1$Smoking <- as.factor(tab1$Smoking)
+tab1$Hypertension <- as.factor(tab1$Hypertension)
+
+
+tbl_summary(tab1)
+```
+
+```{r, echo=FALSE}
+summary(summary(lm(Age ~ Motherweight, data = tab1)))
+```
+
+## univariate (unadjusted) analyses
+
+### Smoking
+```{r, echo=FALSE}
+smoking_crosstab <- table(tab1$Smoking, tab1$Birthweight)
+smoking_percent <- prop.table(smoking_crosstab, 1) * 100
+
+smoking_combined <- paste(smoking_crosstab, "(", sprintf("%.1f%%", smoking_percent), ")", sep="")
+smoking_combined <- matrix(smoking_combined, nrow = nrow(smoking_crosstab), byrow = TRUE, dimnames = dimnames(smoking_crosstab))
+knitr::kable(smoking_combined, caption = "Smoking Status and Low Birthweight")
+cat("The p-value from chi-square test is", round(chisq.test(smoking_crosstab)$p.value, 4))
+```
+
+### Hypertension Status
+```{r}
+hypertension_crosstab <- table(tab1$Hypertension, tab1$Birthweight)
+hypertension_percent <- prop.table(hypertension_crosstab, 1) * 100
+
+hypertension_combined <- paste(hypertension_crosstab, "(", sprintf("%.1f%%", hypertension_percent), ")", sep="")
+hypertension_combined <- matrix(hypertension_combined, nrow = nrow(hypertension_crosstab), byrow = TRUE, dimnames = dimnames(hypertension_crosstab))
+print(hypertension_combined)
+cat("The p-value from Fisher's Exact test is",  round(fisher.test(hypertension_crosstab)$p.value, 4))
+```
+
+
+### Age
+```{r}
+age_low <- tab1$Age[tab1$Birthweight == "<2500"]
+age_not_low <- tab1$Age[tab1$Birthweight == ">=2500"]
+wilcox_test_age <- wilcox.test(age_low, age_not_low)
+print(wilcox_test_age)
+```
+
+### Weight
+```{r}
+weight_low <- tab1$Motherweight[tab1$Birthweight == "<2500"]
+weight_not_low <- tab1$Motherweight[tab1$Birthweight == ">=2500"]
+wilcox_test_weight <- wilcox.test(weight_low, weight_not_low)
+print(wilcox_test_weight)
+```
+
+## Multivariable Analysis
+```{r}
+model <- glm(Birthweight ~ Age + Motherweight + Smoking + Hypertension, 
+             data = tab1, 
+             family = binomial)
+summary(model)
+```
+
+
+
+```{r}
+vif(model)
+```
+
+### Interaction between mother’s weight
+```{r}
+model_add <- glm(Birthweight ~ Age + Motherweight + Smoking + Hypertension + Motherweight*Hypertension, 
+             data = tab1, 
+             family = binomial)
+summary(model_add)
+```
+
