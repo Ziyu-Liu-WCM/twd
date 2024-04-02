@@ -19,6 +19,7 @@ BiocManager::install("HMP2Data")
 BiocManager::install("microbiome")
 BiocManager::install("SpiecEasi")
 BiocManager::install("WGCNA")
+BiocManager::install("network")
 devtools::install_github('zdk123/SpiecEasi')
 
 
