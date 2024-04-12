@@ -67,11 +67,48 @@ summary(coxphmod)
 ## Q5
 In Weibull AFT model, the coefficient of Karnofsky performance score is 0.030068, indicating for each point increase in the Karnofsky performance score, the expected log survival time increases by 0.030068. The reference level of cell types is squamous. celltypesmallcell: subjects with smallcell type of cancer are expected to have log survival time decreased by -0.826185 compared to squamous. celltypeadeno: subjects with smallcell type of cancer are expected to have log survival time decreased by -1.132725 compared to squamous. celltypelarge: subjects with smallcell type of cancer are expected to have log survival time decreased by -0.397681 compared to squamous.
 
-In the Cox ph model
+In the Cox ph model, the coefficient of Karnofsky performance score is -0.03282 with exponential of 0.9677, indicating for each point increase in the Karnofsky performance score,  the hazard (or the risk of death) is multiplied by 0.9677, conditioning on all other factors. The reference level of cell types is squamous. celltypesmallcell: subjects with smallcell type of cancer are expected to have hazard (or the risk of death) multiplied by 2.3679 compared to squamous, conditioning on all other factors. celltypeadeno: subjects with smallcell type of cancer are expected to have hazard (or the risk of death) multiplied by 3.307 compared to squamous, conditioning on all other factors. celltypeadeno: subjects with smallcell type of cancer are expected to have hazard (or the risk of death) multiplied by  1.4943 compared to squamous, conditioning on all other factors.
+
+
+## Q6
 
 
 
 ```{r}
+ggforest(coxphmod, data = veteran)
+```
 
+```{r}
+ph1 = cox.zph(coxphmod) 
+
+ggcoxzph(ph1)
+```
+
+```{r}
+time <- veteran$time
+censor <- veteran$status
+
+Prop_plot <- function(var){
+  variab <- veteran[,colnames(veteran) == var]
+  km <- survfit(Surv(time, censor) ~ variab)
+  
+  plot1 = ggsurvplot(km, data = veteran, legend = "none", submain = paste0(var, " : K-M estimates"), 
+                     ggtheme = theme_bw(), pval = FALSE)$plot
+  plot2 = ggsurvplot(km, data = veteran, legend = "none", legend.title = var, fun = "cumhaz", 
+                     legend.labs = sort(unique(variab)), submain = paste0(var, " : cumulative hazard"), 
+                     ggtheme = theme_bw(), pval = FALSE)$plot
+
+  return(grid.arrange(plot1, plot2, ncol = 2))
+}
+
+plot1 = Prop_plot("karno")
+```
+
+```{r}
+Prop_plot <- function(){
+  return(veteran[,colnames(veteran) == var])
+}
+
+Prop_plot()
 ```
 
