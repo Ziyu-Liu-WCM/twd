@@ -1,0 +1,77 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-04-12"
+---
+
+```{r}
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+
+```{r}
+data(cancer, package="survival")
+head(veteran)
+```
+
+## Q1. Print lifetable and draw a Kaplan Meier curve.
+
+```{r}
+surv_obj <- Surv(time = veteran$time, event = veteran$status)
+km_fit <- survfit(surv_obj ~ 1, data = veteran)
+```
+
+```{r}
+ggsurvplot(km_fit, data = veteran,
+           ggtheme = theme_minimal(),
+           title = "Kaplan-Meier Survival Curve - Veteran Dataset",
+           xlab = "Time in Days", ylab = "Survival Probability")
+```
+
+```{r}
+summary(km_fit, times = seq(from = 0, to = max(veteran$time), by = 30))
+```
+
+## Q2. Draw Kaplan Meier curves by prior therapies and implement the logrank test.
+```{r}
+## Kaplan Meier curves by prior therapies
+km_fit_prior <- survfit(surv_obj ~ prior, data = veteran)
+ggsurvplot(km_fit_prior, data = veteran,
+           ggtheme = theme_minimal(),
+           palette = "Dark2",
+           title = "Kaplan-Meier Curves by Prior Therapies - Veteran Dataset",
+           xlab = "Time in Days", ylab = "Survival Probability",
+           legend.title = "Prior Therapies")
+```
+
+```{r}
+## log-rank test
+survdiff(surv_obj ~ prior, data = veteran)
+```
+
+## Q3. Run a Weibull AFT model with all the available covariates.
+```{r}
+aft <- survreg(surv_obj ~ trt + celltype + karno + diagtime + age + prior, 
+               data = veteran, dist = "weibull")
+summary(aft)
+```
+
+## Q4. Run Cox ph model with all available covariates
+```{r}
+coxphmod <- coxph(surv_obj ~ trt + celltype + karno + diagtime + age + prior, data = veteran)
+summary(coxphmod)
+```
+
+## Q5
+In Weibull AFT model, the coefficient of Karnofsky performance score is 0.030068, indicating for each point increase in the Karnofsky performance score, the expected log survival time increases by 0.030068. The reference level of cell types is squamous. celltypesmallcell: subjects with smallcell type of cancer are expected to have log survival time decreased by -0.826185 compared to squamous. celltypeadeno: subjects with smallcell type of cancer are expected to have log survival time decreased by -1.132725 compared to squamous. celltypelarge: subjects with smallcell type of cancer are expected to have log survival time decreased by -0.397681 compared to squamous.
+
+In the Cox ph model
+
+
+
+```{r}
+
+```
+
