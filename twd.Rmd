@@ -38,8 +38,6 @@ data(airway)
 filter <- filterByExpr(airway)
 table(filter)
 filtered <- airway[filter, ]
-df <- assay(filtered)
-
 
 
 
@@ -53,22 +51,29 @@ registered()
 ```
 
 
+```{r}
+colSums(assay(filtered))
+
+```
 
 
 
 ```{r}
 
-ipt <- airway[1:1000, ]
+ipt <- filtered[1:1000, ]
 
-CPLM <- function(input, X, assay_name = "counts", n_threads = 1, BPPARAM = NULL, 
+CPLM <- function(input, X, assay_name = "counts", offset = NULL, n_threads = 1, BPPARAM = NULL,
                   verbose = FALSE){
-
-
+  
 stopifnot(is(input, "SummarizedExperiment") | is(input, "RangedSummarizedExperiment"))
   
+if(is.null(assays(input)[[assay_name]])){
+  stop("Can not find assay")
+}
+
 ## check design
 if(!is.null(ncol(X)))
-    stop("not implemented for complex desgin matrix.")
+    stop("Not implemented for complex desgin matrix.")
   
 stopifnot(!is.null(X))
 
@@ -83,20 +88,23 @@ if (is.null(BPPARAM)) {
        }
 }
 
-## filter and normalize
-filtered <- input[filterByExpr(input), ]
-df <- betweenLaneNormalization(assay(filtered), which="upper")
+df <- assays(input)[[assay_name]]
 
+## check offset
+if(is.null(offset)){
+  offset <- colSums(df)
+}
   
 ## define per feature function
 FUN <- function(i, design){
 tmp_y <- as.numeric(df[i, ])
 
-fit.df <- data.frame(design, tmp_y)
+fit.df <- data.frame(design, tmp_y, offset)
 
 fit <- cpglm(formula = tmp_y ~ design, 
                      link="log",
-                     data = fit.df)
+                     data = fit.df,
+                     offset = offset)
 cplm_out <- capture.output(cplm_summary <- cplm::summary(fit)$coefficients)
 
 res_i <- c(
@@ -132,6 +140,12 @@ hist(result$pval)
 hist(result$padj)
 
 cat("Find DE genes:", sum(result$padj < 0.05))
+
+cpglm(formula = tmp_y ~ design, 
+                     link="log",
+                     data = assay(ipt),
+                     offset = offset)
+
 ```
 
 ```{r}
